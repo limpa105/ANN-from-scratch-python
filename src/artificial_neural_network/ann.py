@@ -5,6 +5,7 @@ from typing import Optional, Union
 from neural_layer import NeuralLayer
 from ..utils.utils import Utils
 
+
 class NeuralNetwork(ABC):
 
     @abstractmethod
@@ -15,15 +16,17 @@ class NeuralNetwork(ABC):
     def predict(self, data: Union[pd.DataFrame, np.ndarray]):
         pass
 
+
 class ANN(NeuralNetwork):
     FEATURES = 0
+
     def __init__(self, num_features: int, learning_rate: Optional[int] = 0.05, **hyperparameter_config):
-        self.layers = np.array([])
+        self.layers = []
         self.num_recent_features = num_features
         self.num_layers = 0
         self.learning_rate = learning_rate
 
-    def train(self, epochs: int, batch_size: Optional[int], data:pd.DataFrame, labels: pd.Series):
+    def train(self, epochs: int, batch_size: Optional[int], data: pd.DataFrame, labels: pd.Series):
 
         if self.num_layers == 0:
             raise RuntimeError("Cannot train a model with no layers")
@@ -35,27 +38,49 @@ class ANN(NeuralNetwork):
 
         for epoch in range(epochs):
             predictions = self._forward_propagate(data.to_numpy())
-            self._back_propagate(predictions, labels.map(self.label_enumeration).to_numpy())
+            cost = self._back_propagate(predictions, data, labels.map(self.label_enumeration).to_numpy())
+            print("cost", cost)
 
-    def predict(self,  data: Union[np.ndarray, pd.DataFrame]):
+    def predict(self,  data: Union[np.ndarray, pd.DataFsrame]):
         return self.reverse_enumerate[np.argmax(self._forward_propagate(data), axis=1)]
 
     def _forward_propagate(self, data: np.ndarray) -> np.ndarray:
         # first do the zero layer with
         activation = data * self.layers[0].weights + self.layers[0].bias
         activation = np.tanh(activation)
+        self.layers[0].activations = activation
         for layer in self.layers[1:]:
             activation = np.tanh(activation * layer.weights + layer.bias)
+            layer.activations = activation
         return activation
 
     def _error(self, predictions:np.ndarray, labels:np.ndarray):
-        standarized = np.divide(predictions, np.sum(predictions, axis = 1), axis =1)
+        standarized = np.divide(predictions, np.sum(predictions, axis=1), axis=1)
 
         return Utils.cost(standarized, labels)
 
-    def _back_propagate(self, predictions: np.ndarray, labels: np.ndarray):
+    def _back_propagate(self, predictions: pd.DataFrame, data: np.ndarray, labels: np.ndarray):
         cost = self._error(predictions, labels)
-        for layer in reversed(self.layers)
+        recent_derivative = 2 * np.sum([(1-predictions[label]) for label in labels])
+        reversed_layers = self.layers[::-1]
+        for i in range(1, len(reversed_layers)-1):
+            current_layer = reversed_layers[i]
+            previous_layer = reversed_layers[i-1]
+            current_layer.weights = current_layer.weights - self.learning_rate * \
+                                    np.sum(recent_derivative *
+                                     previous_layer.activations *
+                                     (1/np.arccosh(2 * current_layer.activations)), axis = 1)
+
+            current_layer.bias = (current_layer.bias - self.learning_rate * np.sum(
+                                  recent_derivative *
+                                  (1/np.arccosh(2 * current_layer.activations)), axis = 1))
+
+            recent_derivative = np.sum((recent_derivative * current_layer.weights * (1/np.arccosh(2 * current_layer.activations))), axis = 1)
+
+        first_layer = self.layers[0]
+        means = [col.mean() for col in data.columns()]
+        first_layer.weights = recent_derivative * (1/np.arccosh(2 * first_layer.activations)) * means
+        return cost
 
     def add_layer(self, layer_size: Optional[tuple] = (0,0), weights: Optional[np.ndarray] = None, bias: Optional[np.ndarray] = None):
         if layer_size:

@@ -26,6 +26,7 @@ class NeuralLayer:
         self._weights = weights
         self._bias = bias
         self.num_neurons, self.num_features = layer_size
+        self.activations = None
 
         # Setting Neural Layer type, will convert to hidden if new layer added
         self.layer_type = NeuralLayerType.OUTPUT
@@ -99,3 +100,19 @@ class NeuralLayer:
     @layer_type.getter
     def layer_type(self) -> NeuralLayerType:
         return self.layer_type
+
+    @property
+    def activations(self):
+        return self.activations
+
+    @activations.setter
+    def activations(self, activations:np.ndarray):
+        if not isinstance(activations, np.ndarray):
+            raise AttributeError("Activation must be a matrix")
+        self.activations = activations
+
+    @activations.getter
+    def activations(self) -> np.ndarray:
+        return self.activations
+    
+
