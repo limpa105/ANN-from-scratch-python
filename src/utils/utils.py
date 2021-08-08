@@ -12,6 +12,10 @@ class Utils:
         """
         return random.rand(*shape)
 
+    def cost(self, predictions:np.ndarray, labels:np.ndarray):
+        errors = [predictions[labels]]
+
+
 
 class Matrix_Utils:
     pass
