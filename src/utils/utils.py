@@ -1,5 +1,6 @@
 from numpy import ndarray
 from numpy import random
+from numpy import ndarray
 
 
 class Utils:
@@ -12,8 +13,12 @@ class Utils:
         """
         return random.rand(*shape)
 
-    def cost(self, predictions:np.ndarray, labels:np.ndarray):
-        errors = [predictions[labels]]
+    @staticmethod
+    def cost(self, predictions: ndarray, labels: ndarray):
+        errors = [1-predictions[label] for label in labels]
+        return sum(errors)
+
+    
 
 
 
