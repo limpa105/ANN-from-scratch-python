@@ -4,7 +4,7 @@ import numpy as np
 from typing import Optional, Union
 from neural_layer import NeuralLayer
 from ..utils.utils import Utils
-
+from functools import lru_cache
 
 class NeuralNetwork(ABC):
 
@@ -26,8 +26,7 @@ class ANN(NeuralNetwork):
         self.num_layers = 0
         self.learning_rate = learning_rate
 
-    def train(self, epochs: int, batch_size: Optional[int], data: pd.DataFrame, labels: pd.Series):
-
+    def train(self, epochs: int, data: pd.DataFrame, labels: pd.Series, batch_size: Optional[int] = None):
         if self.num_layers == 0:
             raise RuntimeError("Cannot train a model with no layers")
         assert np.unique(labels) == self.num_recent_features, """ The last layer's output dimensions need 
@@ -38,7 +37,7 @@ class ANN(NeuralNetwork):
 
         for epoch in range(epochs):
             predictions = self._forward_propagate(data.to_numpy())
-            cost = self._back_propagate(predictions, data, labels.map(self.label_enumeration).to_numpy())
+            cost = self._back_propagate(predictions, data.to_numpy(), labels.map(self.label_enumeration).to_numpy())
             print("cost", cost)
 
     def predict(self,  data: Union[np.ndarray, pd.DataFsrame]):
@@ -59,7 +58,8 @@ class ANN(NeuralNetwork):
 
         return Utils.cost(standarized, labels)
 
-    def _back_propagate(self, predictions: pd.DataFrame, data: np.ndarray, labels: np.ndarray):
+    @lru_cache(maxsize=1000)
+    def _back_propagate(self, predictions: pd.np.array, data: np.ndarray, labels: np.ndarray):
         cost = self._error(predictions, labels)
         recent_derivative = 2 * np.sum([(1-predictions[label]) for label in labels])
         reversed_layers = self.layers[::-1]

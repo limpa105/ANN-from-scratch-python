@@ -1,6 +1,7 @@
 import pytest
 from src.artificial_neural_network.ann import ANN
 import pandas as pd
+import numpy as np
 
 
 class TestAnn:
@@ -9,19 +10,36 @@ class TestAnn:
     """
     @staticmethod
     def test_nn_xor_pattern():
-        pass
+        XOR_RANGE = 2
+        INPUT_SIZE = 95
+        # TODO: VALIDATE SIZE PARAMETER IS_TUPLE, MAY NEED TO BE BROADCASTED ALONG 0TH DIMENSION
+        data = np.random.randint(low = 0 , high = XOR_RANGE,size = (INPUT_SIZE))
+        data2 = np.random.randint(low = 0 , high = XOR_RANGE,size = (INPUT_SIZE))
+        y =  pd.Series([val1 and (not val2) or (val1 and (not val2)) for val1, val2 in zip(data,data2)])
+        df = pd.DataFrame()
+        X = pd.DataFrame.assign(df, col1 = data, col2 = data2)
+        neural_net = ANN(2, 0.05)
+        neural_net.add_layer((2,5))
+        neural_net.add_layer((5,8))
+        neural_net.add_layer((8,2))
+        neural_net.add_layer((2,1))
+        neural_net.train(epochs= 100, data = X, labels = y)
+        predictions = neural_net.predict([[0,1], (1,0), [1,1], [0,0]])
+        assert predictions == [1, 1, 0, 0] , "XOR function predicted incorrectly"
+
 
     @staticmethod
-    def test_nn_with_survey_data():
-        pass
-
-    @staticmethod
-    def test_nn_synthetic_data():
+    def test_nn_synthetic_data(df):
         neural_net = ANN(3, 0.05, runtime_batch_size=10)
         neural_net.add_layer((3,5))
         neural_net.add_layer((5,6))
         neural_net.add_layer((6,3))
-        pass
+        data, labels = df.remove(columns = ["is_female"]), df["is_female"]
+        neural_net.train(epochs=50, data=data, labels=labels)
+        clear_male = [190, 70, 10]
+        clear_female = [130, 55, 6.5]
+        uncertain = [145, 65,  9]
+        print("Predictions for clear male, clear female and uncertain are ", neural_net.predict([clear_male, clear_female, uncertain]))
 
     @staticmethod
     def test_nn_with_incorrect_dimensionality():
