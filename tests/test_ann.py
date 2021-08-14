@@ -12,7 +12,7 @@ class TestAnn:
         pass
 
     @staticmethod
-    def test_nn_mnist_prediction():
+    def test_nn_with_survey_data():
         pass
 
     @staticmethod
@@ -21,8 +21,6 @@ class TestAnn:
         neural_net.add_layer((3,5))
         neural_net.add_layer((5,6))
         neural_net.add_layer((6,3))
-        neural_net.
-
         pass
 
     @staticmethod
