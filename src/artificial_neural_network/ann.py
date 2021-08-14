@@ -20,7 +20,7 @@ class NeuralNetwork(ABC):
 class ANN(NeuralNetwork):
     FEATURES = 0
 
-    def __init__(self, num_features: int, learning_rate: Optional[int] = 0.05, **hyperparameter_config):
+    def __init__(self, num_features: int, learning_rate: Optional[float] = 0.05, **hyperparameter_config):
         self.layers = []
         self.num_recent_features = num_features
         self.num_layers = 0
