@@ -33,8 +33,8 @@ class TestAnn:
         neural_net = ANN(3, 0.05, runtime_batch_size=10)
         neural_net.add_layer((3,5))
         neural_net.add_layer((5,6))
-        neural_net.add_layer((6,3))
-        data, labels = df.remove(columns = ["is_female"]), df["is_female"]
+        neural_net.add_layer((6,2))
+        data, labels = df.drop(columns=["is_female"]), df["is_female"]
         neural_net.train(epochs=50, data=data, labels=labels)
         clear_male = [190, 70, 10]
         clear_female = [130, 55, 6.5]
@@ -68,6 +68,6 @@ class TestAnn:
 
 if __name__ == "__main__":
     TestAnn.test_nn_with_incorrect_dimensionality()
-    TestAnn.test_nn_synthetic_data()
+    TestAnn.test_nn_synthetic_data(pd.read_excel("synthetic_data_nn.xlsx"))
     TestAnn.test_nn_xor_pattern()
 

@@ -16,6 +16,7 @@ class Utils:
             data_struct = [np.random.randn() for i in data_struct]
         else:
             data_struct = [[np.random.randn() for i in data_struct[0] for j in range(len(data_struct))]]
+        return data_struct
 
 
     @staticmethod
@@ -33,7 +34,7 @@ class Utils:
             :param labels: the true labels for the training examples
             :return label_cost_matrix: a matrix of examples labels
             """
-            label_cost_matrix = np.zeros(len(labels),len(np.unique(labels)))
+            label_cost_matrix = np.zeros(shape=(len(labels), len(np.unique(labels))))
             for i, row in enumerate(label_cost_matrix):
                 row[labels[i]] = 1
             return label_cost_matrix

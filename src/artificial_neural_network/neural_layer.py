@@ -25,7 +25,7 @@ class NeuralLayer:
         self._layer_num = layer_num
         self._weights = weights
         self._bias = bias
-        self.num_neurons, self.num_features = layer_size
+        self.num_features, self.num_neurons = layer_size
         self._activations = None
 
         # Setting Neural Layer type, will convert to hidden if new layer added
@@ -51,13 +51,13 @@ class NeuralLayer:
         if weights is None:
             if not self.num_neurons:
                 self.num_neurons = 5
-            self._weights = Utils.initialize_randomly(np.ndarray(self.num_features, self.num_neurons))
+            self._weights = np.random.uniform(size=(self.num_features, self.num_neurons))
 
         # Initializing bias with corresponding result from weight matrix
         if bias is None:
             if not self.num_neurons and weights is not None:
                 self.num_neurons = len(weights[0])
-            self._bias = Utils.initialize_randomly(np.ndarray(self.num_neurons))
+            self._bias = np.random.uniform(size=(1, self.num_neurons))
 
     @property
     def weights(self):

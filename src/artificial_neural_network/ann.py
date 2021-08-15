@@ -29,57 +29,61 @@ class ANN(NeuralNetwork):
     def train(self, epochs: int, data: pd.DataFrame, labels: pd.Series, batch_size: Optional[int] = None):
         if self.num_layers == 0:
             raise RuntimeError("Cannot train a model with no layers")
-        assert np.unique(labels) == self.num_recent_features, """ The last layer's output dimensions need 
+        assert len(np.unique(labels)) == self.num_recent_features, """ The last layer's output dimensions need 
                                                                 to match the number of classes"""
         unique_labels = np.unique(labels)
         self.label_enumeration = {unique_labels[i]: i for i in range(len(unique_labels))}
         self.reverse_enumerate = {value: key for key, value in self.label_enumeration.items()}
+        for col in data.columns:
+            data[col] = (data[col] - data[col].mean()) / data[col].std()
 
         for epoch in range(epochs):
             predictions = self._forward_propagate(data.to_numpy())
-            cost = self._back_propagate(predictions, data.to_numpy(), labels.map(self.label_enumeration).to_numpy())
+            cost = self._back_propagate(predictions, labels.map(self.label_enumeration).to_numpy())
             print("cost", cost)
 
     def predict(self,  data: Union[np.ndarray, pd.DataFrame]):
-        return self.reverse_enumerate[np.argmax(self._forward_propagate(data), axis=1)]
+        predictions = np.argmax(self._forward_propagate(data), axis=1)
+        return [self.reverse_enumerate[prediction] for prediction in predictions]
 
     def _forward_propagate(self, data: np.ndarray) -> np.ndarray:
         # first do the zero layer with
-        activation = data * self.layers[0].weights + self.layers[0].bias
+        activation = np.matmul(data,self.layers[0].weights) + self.layers[0].bias
         activation = np.tanh(activation)
         self.layers[0].activations = activation
         for layer in self.layers[1:]:
-            activation = np.tanh(activation * layer.weights + layer.bias)
+            activation = np.tanh(np.matmul(activation,layer.weights) + layer.bias)
             layer.activations = activation
         return activation
 
     def _error(self, predictions:np.ndarray, labels:np.ndarray):
-        standarized = np.divide(predictions, np.sum(predictions, axis=1), axis=1)
-        return Utils.cost(standarized, labels)
+        #standarized = predictions/np.sum(predictions, axis=1)
+        return Utils.cost(predictions, labels)
 
-    @lru_cache(maxsize = 4)
-    def _back_propagate(self, predictions: np.array, data: np.ndarray, labels: np.ndarray):
+    def _back_propagate(self, predictions: np.ndarray, labels: np.ndarray):
         # TODO: POTENTIAL MOVE TO lOGSPACE
         cost, cost_derivative = self._error(predictions, labels)
         final_layer = self.layers[-1]
         # Hadamard with the cost
-        final_layer_derivative = cost_derivative * (1/np.arccosh(2 * final_layer.activations))
-        final_layer.weights -= self.layers[-2].activations.T * final_layer_derivative
-        final_layer.bias -= (np.ones(1, len(final_layer_derivative) * final_layer_derivative))
+        activation_der = (1 - (np.tanh(final_layer.activations) ** 2))
+        final_layer_derivative = cost_derivative * activation_der
+        final_layer.weights -= np.matmul(self.layers[-2].activations.T,final_layer_derivative)
+        final_layer.bias -= np.matmul(np.ones(shape=(1, len(final_layer_derivative))), final_layer_derivative)
 
         def _back_propagate_helper(cached_derivative: float, layer: int):
             if layer != 0:
-                next_derivative = ((cached_derivative *
-                                    (self.layers[layer+1].weights.T))
-                                    * (1/np.arccosh(2*self.layers[layer].activations)))
+                act_der = (1 - (np.tanh(self.layers[layer].activations) ** 2))
+                next_derivative = ((np.matmul(cached_derivative,
+                                    self.layers[layer+1].weights.T) *
+                                    act_der))
 
-                self.layers[layer].weights -= self.layers[layer-1].activations.T * next_derivative
-                self.layers[layer].bias -=  np.ones(1, len(final_layer_derivative)) * next_derivative
+                self.layers[layer].weights -= np.matmul(self.layers[layer-1].activations.T,next_derivative)
+                self.layers[layer].bias -= np.matmul(np.ones(shape=(1, len(final_layer_derivative))),next_derivative)
                 return _back_propagate_helper(next_derivative, layer-1)
             else:
                 return
 
-        _back_propagate_helper(final_layer_derivative, len(self.layers)-1)
+        _back_propagate_helper(final_layer_derivative, len(self.layers)-2)
         return cost
 
     def add_layer(self, layer_size: Optional[tuple] = (0,0), weights: Optional[np.ndarray] = None, bias: Optional[np.ndarray] = None):
@@ -91,7 +95,8 @@ class ANN(NeuralNetwork):
                 raise AttributeError("layer feature lengths should match")
         new_layer = NeuralLayer(self.num_layers, layer_size, weights, bias)
         self.num_layers += 1
-        np.add(self.layers, new_layer)
-        self.num_recent_features = len(new_layer.weights[ANN.FEATURES_DIMENSION])
+        self.layers = np.append(self.layers, new_layer)
+
+        self.num_recent_features = len(new_layer.weights[0])
 
 
