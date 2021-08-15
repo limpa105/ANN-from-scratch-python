@@ -18,7 +18,7 @@ class NeuralNetwork(ABC):
 
 
 class ANN(NeuralNetwork):
-    FEATURES = 0
+    FEATURES_DIMENSION = 0
 
     def __init__(self, num_features: int, learning_rate: Optional[float] = 0.05, **hyperparameter_config):
         self.layers = []
@@ -40,7 +40,7 @@ class ANN(NeuralNetwork):
             cost = self._back_propagate(predictions, data.to_numpy(), labels.map(self.label_enumeration).to_numpy())
             print("cost", cost)
 
-    def predict(self,  data: Union[np.ndarray, pd.DataFsrame]):
+    def predict(self,  data: Union[np.ndarray, pd.DataFrame]):
         return self.reverse_enumerate[np.argmax(self._forward_propagate(data), axis=1)]
 
     def _forward_propagate(self, data: np.ndarray) -> np.ndarray:
@@ -55,31 +55,31 @@ class ANN(NeuralNetwork):
 
     def _error(self, predictions:np.ndarray, labels:np.ndarray):
         standarized = np.divide(predictions, np.sum(predictions, axis=1), axis=1)
-
         return Utils.cost(standarized, labels)
 
-    @lru_cache(maxsize=1000)
-    def _back_propagate(self, predictions: pd.np.array, data: np.ndarray, labels: np.ndarray):
-        cost = self._error(predictions, labels)
-        recent_derivative = 2 * np.sum([(1-predictions[label]) for label in labels])
-        reversed_layers = self.layers[::-1]
-        for i in range(1, len(reversed_layers)-1):
-            current_layer = reversed_layers[i]
-            previous_layer = reversed_layers[i-1]
-            current_layer.weights = current_layer.weights - self.learning_rate * \
-                                    np.sum(recent_derivative *
-                                     previous_layer.activations *
-                                     (1/np.arccosh(2 * current_layer.activations)), axis = 1)
+    @lru_cache(maxsize = 4)
+    def _back_propagate(self, predictions: np.array, data: np.ndarray, labels: np.ndarray):
+        # TODO: POTENTIAL MOVE TO lOGSPACE
+        cost, cost_derivative = self._error(predictions, labels)
+        final_layer = self.layers[-1]
+        # Hadamard with the cost
+        final_layer_derivative = cost_derivative * (1/np.arccosh(2 * final_layer.activations))
+        final_layer.weights -= self.layers[-2].activations.T * final_layer_derivative
+        final_layer.bias -= (np.ones(1, len(final_layer_derivative) * final_layer_derivative))
 
-            current_layer.bias = (current_layer.bias - self.learning_rate * np.sum(
-                                  recent_derivative *
-                                  (1/np.arccosh(2 * current_layer.activations)), axis = 1))
+        def _back_propagate_helper(cached_derivative: float, layer: int):
+            if layer != 0:
+                next_derivative = ((cached_derivative *
+                                    (self.layers[layer+1].weights.T))
+                                    * (1/np.arccosh(2*self.layers[layer].activations)))
 
-            recent_derivative = np.sum((recent_derivative * current_layer.weights * (1/np.arccosh(2 * current_layer.activations))), axis = 1)
+                self.layers[layer].weights -= self.layers[layer-1].activations.T * next_derivative
+                self.layers[layer].bias -=  np.ones(1, len(final_layer_derivative)) * next_derivative
+                return _back_propagate_helper(next_derivative, layer-1)
+            else:
+                return
 
-        first_layer = self.layers[0]
-        means = [col.mean() for col in data.columns()]
-        first_layer.weights = recent_derivative * (1/np.arccosh(2 * first_layer.activations)) * means
+        _back_propagate_helper(final_layer_derivative, len(self.layers)-1)
         return cost
 
     def add_layer(self, layer_size: Optional[tuple] = (0,0), weights: Optional[np.ndarray] = None, bias: Optional[np.ndarray] = None):
@@ -92,6 +92,6 @@ class ANN(NeuralNetwork):
         new_layer = NeuralLayer(self.num_layers, layer_size, weights, bias)
         self.num_layers += 1
         np.add(self.layers, new_layer)
-        self.num_recent_features = new_layer.weights[ANN.FEATURES]
+        self.num_recent_features = len(new_layer.weights[ANN.FEATURES_DIMENSION])
 
 
