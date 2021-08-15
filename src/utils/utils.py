@@ -6,13 +6,17 @@ import numpy as np
 
 class Utils:
     @staticmethod
-    def initialize_randomly(shape: list) -> ndarray:
+    def initialize_randomly(data_struct: ndarray) -> ndarray:
         """
 
         :param shape: a list representing shape to initialize randomly
         :return: a randomly initialized ndarray
         """
-        return random.rand(*shape)
+        if len(data_struct.shape) == 1:
+            data_struct = [np.random.randn() for i in data_struct]
+        else:
+            data_struct = [[np.random.randn() for i in data_struct[0] for j in range(len(data_struct))]]
+
 
     @staticmethod
     def cost(predictions: ndarray, labels: np.array):

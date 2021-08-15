@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 import numpy as np
 from typing import Optional, Union
-from neural_layer import NeuralLayer
+from src.artificial_neural_network.neural_layer import NeuralLayer
 from ..utils.utils import Utils
 from functools import lru_cache
 
@@ -83,10 +83,10 @@ class ANN(NeuralNetwork):
         return cost
 
     def add_layer(self, layer_size: Optional[tuple] = (0,0), weights: Optional[np.ndarray] = None, bias: Optional[np.ndarray] = None):
-        if layer_size:
+        if layer_size != (0, 0):
             if self.num_recent_features != layer_size[0]:
                 raise AttributeError("layer feature lengths should match")
-        elif weights:
+        elif weights is not None:
             if self.num_recent_features != len(weights):
                 raise AttributeError("layer feature lengths should match")
         new_layer = NeuralLayer(self.num_layers, layer_size, weights, bias)

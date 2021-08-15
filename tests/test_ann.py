@@ -50,7 +50,7 @@ class TestAnn:
 
         def test_nn_with_incorrect_input_layer_dimensionality(df):
             try:
-                neural_net.add_layer(weights=df.to_numpy())
+                neural_net.add_layer(weights=df.to_numpy().T)
                 return False
             except AttributeError:
                 return True
@@ -58,11 +58,16 @@ class TestAnn:
         def test_nn_with_incorrect_second_layer_dimensionality(df, df2):
             neural_net.add_layer(weights=df2.to_numpy())
             try:
-                neural_net.add_layer(weights = df.to_numpy())
+                neural_net.add_layer(weights = df.to_numpy().T)
                 return False
             except AttributeError:
                 return True
 
         assert test_nn_with_incorrect_input_layer_dimensionality(df), "Input layer incorrect dimensionality issue not caught"
         assert test_nn_with_incorrect_second_layer_dimensionality(df, df2),  "Adding a second layer incorrect dimensionality issue not caught"
+
+if __name__ == "__main__":
+    TestAnn.test_nn_with_incorrect_dimensionality()
+    TestAnn.test_nn_synthetic_data()
+    TestAnn.test_nn_xor_pattern()
 
