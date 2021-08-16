@@ -5,6 +5,7 @@ from typing import Optional, Union
 from src.artificial_neural_network.neural_layer import NeuralLayer
 from ..utils.utils import Utils
 from functools import lru_cache
+import math
 
 class NeuralNetwork(ABC):
 
@@ -43,6 +44,10 @@ class ANN(NeuralNetwork):
             print("cost", cost)
 
     def predict(self,  data: Union[np.ndarray, pd.DataFrame]):
+        data = pd.DataFrame(data)
+        for col in data.columns:
+            data[col] = (data[col] - data[col].mean()) / data[col].std()
+        data = data.to_numpy()
         predictions = np.argmax(self._forward_propagate(data), axis=1)
         return [self.reverse_enumerate[prediction] for prediction in predictions]
 
@@ -52,9 +57,16 @@ class ANN(NeuralNetwork):
         activation = np.tanh(activation)
         self.layers[0].activations = activation
         for layer in self.layers[1:]:
-            activation = np.tanh(np.matmul(activation,layer.weights) + layer.bias)
+            if layer is self.layers[-1]:
+                activation = self._logistic_sigmoid(np.matmul(activation,layer.weights) + layer.bias)
+            else:
+                activation = np.tanh(np.matmul(activation, layer.weights) + layer.bias)
             layer.activations = activation
         return activation
+
+    def _logistic_sigmoid(self, activation:np.ndarray) -> np.ndarray:
+        return 1 / (1 + np.exp(-1 * activation))
+
 
     def _error(self, predictions:np.ndarray, labels:np.ndarray):
         #standarized = predictions/np.sum(predictions, axis=1)
@@ -65,7 +77,8 @@ class ANN(NeuralNetwork):
         cost, cost_derivative = self._error(predictions, labels)
         final_layer = self.layers[-1]
         # Hadamard with the cost
-        activation_der = (1 - (np.tanh(final_layer.activations) ** 2))
+        activation_der = self._logistic_sigmoid(final_layer.activations)*(1 - self._logistic_sigmoid(final_layer.activations))
+        #(1 - (np.tanh(final_layer.activations) ** 2))
         final_layer_derivative = cost_derivative * activation_der
         final_layer.weights -= np.matmul(self.layers[-2].activations.T,final_layer_derivative)
         final_layer.bias -= np.matmul(np.ones(shape=(1, len(final_layer_derivative))), final_layer_derivative)
