@@ -10,7 +10,7 @@ import math
 class NeuralNetwork(ABC):
 
     @abstractmethod
-    def train(self, epochs: int, batch_size: Optional[int], data:pd.DataFrame, labels:pd.Series):
+    def train(self, epochs: int, data:pd.DataFrame, labels:pd.Series):
         pass
 
     @abstractmethod
@@ -27,7 +27,14 @@ class ANN(NeuralNetwork):
         self.num_layers = 0
         self.learning_rate = learning_rate
 
-    def train(self, epochs: int, data: pd.DataFrame, labels: pd.Series, batch_size: Optional[int] = None):
+    def train(self, epochs: int, data: pd.DataFrame, labels: pd.Series):
+        """
+        Given input data, trains neural network model and prints the cost
+
+        :param epochs: number of epochs the model should be tested for
+        :param data: training data
+        :param labels: expected labels corresponding to training records
+        """
         if self.num_layers == 0:
             raise RuntimeError("Cannot train a model with no layers")
         assert len(np.unique(labels)) == self.num_recent_features, """ The last layer's output dimensions need 
@@ -44,6 +51,11 @@ class ANN(NeuralNetwork):
             print("cost", cost)
 
     def predict(self,  data: Union[np.ndarray, pd.DataFrame]):
+        """
+        Returns a set of predictions given a set of inputs
+        :param data: A set of featured examples to make predictions on
+        :return: A set of predictions
+        """
         data = pd.DataFrame(data)
         for col in data.columns:
             data[col] = (data[col] - data[col].mean()) / data[col].std()
@@ -52,7 +64,6 @@ class ANN(NeuralNetwork):
         return [self.reverse_enumerate[prediction] for prediction in predictions]
 
     def _forward_propagate(self, data: np.ndarray) -> np.ndarray:
-        # first do the zero layer with
         activation = np.matmul(data,self.layers[0].weights) + self.layers[0].bias
         activation = np.tanh(activation)
         self.layers[0].activations = activation
@@ -69,16 +80,12 @@ class ANN(NeuralNetwork):
 
 
     def _error(self, predictions:np.ndarray, labels:np.ndarray):
-        #standarized = predictions/np.sum(predictions, axis=1)
         return Utils.cost(predictions, labels)
 
     def _back_propagate(self, predictions: np.ndarray, labels: np.ndarray):
-        # TODO: POTENTIAL MOVE TO lOGSPACE
         cost, cost_derivative = self._error(predictions, labels)
         final_layer = self.layers[-1]
-        # Hadamard with the cost
         activation_der = self._logistic_sigmoid(final_layer.activations)*(1 - self._logistic_sigmoid(final_layer.activations))
-        #(1 - (np.tanh(final_layer.activations) ** 2))
         final_layer_derivative = cost_derivative * activation_der
         final_layer.weights -= np.matmul(self.layers[-2].activations.T,final_layer_derivative)
         final_layer.bias -= np.matmul(np.ones(shape=(1, len(final_layer_derivative))), final_layer_derivative)
@@ -100,6 +107,13 @@ class ANN(NeuralNetwork):
         return cost
 
     def add_layer(self, layer_size: Optional[tuple] = (0,0), weights: Optional[np.ndarray] = None, bias: Optional[np.ndarray] = None):
+        """
+        Adds a layer to the neural network
+
+        :param layer_size: A tuple representing the input dimensions of the layer
+        :param weights: A set of initial / pretrained weights, optional
+        :param bias: An initial /pretrained bias
+        """
         if layer_size != (0, 0):
             if self.num_recent_features != layer_size[0]:
                 raise AttributeError("layer feature lengths should match")

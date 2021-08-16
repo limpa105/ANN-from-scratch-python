@@ -13,10 +13,9 @@ class Utils:
         :return: a randomly initialized ndarray
         """
         if len(data_struct.shape) == 1:
-            # TODO: return to random
             data_struct = [0.5 for i in data_struct]
         else:
-            data_struct = [[0.5 for i in data_struct[0] for j in range(len(data_struct))]]
+            data_struct = [[np.random.randn() for i in data_struct[0] for j in range(len(data_struct))]]
         return data_struct
 
 
@@ -45,10 +44,3 @@ class Utils:
         mean_squared_error = (np.sum(error ** 2) / len(error))
         derivative = (2 * error) / len(error)
         return mean_squared_error, derivative
-
-
-
-
-
-class Matrix_Utils:
-    pass
